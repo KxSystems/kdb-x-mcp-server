@@ -90,6 +90,17 @@ async def kdbx_similarity_search_impl( table_name: str,
 
 
 def register_tools(mcp_server):
+    # Check if AI Libs are available
+    try:
+        from mcp_server.server import is_ai_libs_available
+        
+        if not is_ai_libs_available():
+            logger.info("AI Libs not available - skipping...")
+            return []
+    except Exception as e:
+        logger.warning(f"Could not check AI Libs availability: {e}. Skipping AI tools.")
+        return []
+    
     @mcp_server.tool()
     async def kdbx_similarity_search(table_name: str,
                             query: str,

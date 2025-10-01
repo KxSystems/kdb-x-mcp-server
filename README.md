@@ -66,6 +66,8 @@ Before installing and running the KDB-X MCP Server, ensure you have met the foll
   - `npx` comes bundled with the [nodejs](https://nodejs.org/en) installer - available on Windows/Mac/Linux/WSL
   - See [example configuration with streamable-http](#example-configuration-with-streamable-http)
 
+> Note: ⚠️ KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://kdb-x.kx.com/sign-in) to ensure uninterrupted access, valid through January 4, 2026
+
 ## Quickstart
 
 To demonstrate basic usage of the KDB-X MCP Server, using an empty KDB-X database, follow the quickstart steps below.
@@ -437,6 +439,10 @@ The below tools can aid in the development, testing and debugging of new MCP too
 - [Postman](https://learning.postman.com/docs/postman-ai-agent-builder/mcp-requests/create/) to create MCP requests and store in collections
 
 ## Troubleshooting
+
+### KDB-X license expired
+
+KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://kdb-x.kx.com/sign-in) to ensure uninterrupted access, valid through January 4, 2026
 
 ### KDB-X connection error
 

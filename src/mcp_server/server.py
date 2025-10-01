@@ -55,6 +55,16 @@ class MCPServerConfig:
         self.host = self.settings.host
         self.transport = self.settings.transport
 
+# Global flag to track AI Libs availability
+_ai_libs_available = False
+
+def set_ai_libs_available(available: bool):
+    global _ai_libs_available
+    _ai_libs_available = available
+
+def is_ai_libs_available() -> bool:
+    return _ai_libs_available
+
 class McpServer:
 
     def __init__(self, config: Optional[MCPServerConfig] = None):
@@ -111,11 +121,18 @@ class McpServer:
             if not conn('@[{2< count .s};(::);{0b}]').py():
                 self.logger.error("KDB-X SQL interface check: FAILED - KDB-X service does not have the SQL interface loaded. Load it by running .s.init[] in your KDB-X Session")
                 sys.exit(1)
-            if not conn('@[{2< count .ai};(::);{0b}]').py():
-                self.logger.error("KDB-X AI Libs check: FAILED - KDB-X service does not have the AI Libs loaded. Load it by running \l ai-libs/init.q in your KDB-X Session")
-                sys.exit(1)
             else:
                 self.logger.info("KDB-X SQL interface check: SUCCESS - SQL interface is loaded")
+
+            # check if AI libs are loaded on KDB-X service
+            ai_libs_available = conn('@[{2< count .ai};(::);{0b}]').py()
+            if not ai_libs_available:
+                self.logger.warning("KDB-X AI Libs check: NOT AVAILABLE - AI-powered tools (similarity_search, hybrid_search) will be disabled.")
+                self.logger.warning("To enable AI tools, load the KDB-X AI libraries by running: \l ai-libs/init.q in your KDB-X Session and then restart the MCP server")
+            else:
+                self.logger.info("KDB-X AI Libs check: SUCCESS - AI Libs are loaded, AI tools will be available")
+
+            set_ai_libs_available(ai_libs_available)
             conn.close()
 
         except QError as e:

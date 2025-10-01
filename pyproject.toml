@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "mcp[cli]>=1.2.0",
-    "pykx>=4.0.0.b2",
+    "pykx>=4.0.0.b3",
     "pydantic-settings",
     # Optional: Manage below packages for embedding support
     # "sentence_transformers",
