@@ -2,6 +2,13 @@ KDB SQL Query Guide
 
 Write ANSI-compliant SQL for kdb+ tables.
 
+IMPORTANT - Column Name Quoting:
+Always use double quotes around column names to avoid conflicts with SQL reserved words.
+Examples: "Close", "Open", "Date", "Time", "Group", "Order", "Key", "Value"
+
+Correct:   select avg("Close") from stocks;
+Incorrect: select avg(Close) from stocks;
+
 Basic Syntax:
 SELECT [DISTINCT] columns FROM table
 [LEFT|RIGHT|INNER|CROSS] JOIN table2 ON condition
@@ -28,7 +35,7 @@ Joins: LEFT, RIGHT, INNER, CROSS
 Filtering:
 - WHERE with =, <, >, BETWEEN, IN, EXISTS, IS NULL
 - LIKE uses standard ANSI SQL % wildcards (NOT q-style *)
-- Examples: WHERE Symbol LIKE 'BTC%', WHERE Symbol LIKE '%USD', WHERE Symbol LIKE '%USDT%'
+- Examples: WHERE "Symbol" LIKE 'BTC%', WHERE "Symbol" LIKE '%USD', WHERE "Symbol" LIKE '%USDT%'
 - No underscore (_) single character wildcards supported
 - Subqueries in comparisons and IN clauses
 
@@ -51,41 +58,54 @@ Data Types:
 - Date/Time: DATE, TIME, TIMESTAMP with CURRENT_DATE, LOCALTIME, LOCALTIMESTAMP
 
 Key Differences from Standard SQL:
+- Always quote column names with double quotes
 - LIKE uses standard ANSI SQL % wildcards
 - No UPDATE, DELETE, constraints, transactions, or privileges
 - Tables are in-memory (no persistence)
 - User-defined functions via .s.fs and .s.F
 
-Examples:
+Examples
+
+Financial data with quoted columns:
+select 
+    "Symbol",
+    avg("Open") as avg_open,
+    avg("High") as avg_high,
+    avg("Low") as avg_low,
+    avg("Close") as avg_close,
+    min("Date") as first_date,
+    max("Date") as last_date
+from stocks
+group by "Symbol";
 
 Basic query with aggregation:
-SELECT vendor, COUNT(*) as trip_count, AVG(fare) as avg_fare
-FROM trips
-WHERE payment_type IN ('cash', 'credit')
-GROUP BY vendor
-HAVING COUNT(*) > 100
-ORDER BY trip_count DESC
-LIMIT 10;
+select "vendor", count(*) as trip_count, avg("fare") as avg_fare
+from trips
+where "payment_type" in ('cash', 'credit')
+group by "vendor"
+having count(*) > 100
+order by trip_count desc
+limit 10;
 
 Join with subquery:
-SELECT t.*, cc.description
-FROM trips t
-LEFT JOIN cash_credit cc ON t.payment_type = cc.payment_type
-WHERE t.fare > (SELECT AVG(fare) FROM trips);
+select t.*, cc."description"
+from trips t
+left join cash_credit cc on t."payment_type" = cc."payment_type"
+where t."fare" > (select avg("fare") from trips);
 
 CTE example:
-WITH daily_stats AS (
-  SELECT date, SUM(fare) as total_fare, COUNT(*) as trip_count
-  FROM trips GROUP BY date
+with daily_stats as (
+  select "Date", sum("fare") as total_fare, count(*) as trip_count
+  from trips group by "Date"
 )
-SELECT * FROM daily_stats WHERE total_fare > 1000;
+select * from daily_stats where total_fare > 1000;
 
 Pattern matching:
-SELECT DISTINCT Symbol FROM crypto WHERE Symbol LIKE '%USDT%';
-SELECT * FROM crypto WHERE Symbol LIKE 'BTC%' OR Symbol LIKE '%USD';
+select distinct "Symbol" from crypto where "Symbol" like '%USDT%';
+select * from crypto where "Symbol" like 'BTC%' or "Symbol" like '%USD';
 
 Date queries:
-SELECT * FROM crypto
-WHERE Datetime >= '2025-04-22T00:00:00'
-ORDER BY Datetime DESC
-LIMIT 100;
+select * from crypto
+where "Datetime" >= '2025-04-22T00:00:00'
+order by "Datetime" desc
+limit 100;

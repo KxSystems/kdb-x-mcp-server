@@ -1,10 +1,9 @@
-
 import logging
 from typing import List
 from mcp.types import TextContent
 from mcp_server.utils.kdbx import get_kdb_connection
+from mcp_server.utils.format_utils import format_data_for_display
 from mcp_server.utils.embeddings_helpers import get_embedding_config
-from mcp_server.server import config
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ async def kdbx_describe_table_impl(table: str) -> List[TextContent]:
 
         output_lines.extend([
             f"\n Schema Information:",
-            _format_data(schema_data)
+            format_data_for_display(schema_data, table)
         ])
 
         if total_records > 0:
@@ -46,7 +45,7 @@ async def kdbx_describe_table_impl(table: str) -> List[TextContent]:
 
             output_lines.extend([
                 f"\n Data Preview ({preview_size} records):",
-                _format_data(preview_data, table)
+                format_data_for_display(preview_data, table)
             ])
         else:
             output_lines.append("\n Table is empty - no data to preview")
@@ -66,6 +65,12 @@ async def kdbx_describe_tables_impl() -> List[TextContent]:
         conn = get_kdb_connection()
 
         available_tables = conn.tables(None).py()
+        
+        # Filter out internal AI library index tables (*document, *stats, *token)
+        available_tables = [
+            table for table in available_tables 
+            if not (table.endswith('document') or table.endswith('stats') or table.endswith('token'))
+        ]
 
         if not available_tables:
             return [TextContent(
@@ -84,7 +89,7 @@ async def kdbx_describe_tables_impl() -> List[TextContent]:
             overview_parts.append(table_analysis[0].text)
 
         complete_overview = "\n".join(overview_parts)
-        logger.info(complete_overview)
+        logger.debug(complete_overview)
         return [TextContent(type="text", text=complete_overview)]
 
     except Exception as error:
@@ -94,16 +99,6 @@ async def kdbx_describe_tables_impl() -> List[TextContent]:
             text=f" DATABASE ANALYSIS ERROR\n{'═' * 60}\nFailed to analyze database schema: {error}"
         )]
 
-
-def _format_data(data, table=None) -> str:
-    if table:
-        embeddings_column, _, _, _, _ = get_embedding_config(table)
-        if embeddings_column and hasattr(data, "pop"):
-            data.pop(embeddings_column, None)
-            # data = data.drop(embeddings_column, axis=1, errors="ignore")
-    if hasattr(data, 'to_string'):
-        return data.to_string()
-    return str(data)
 
 
 def register_resources(mcp_server):

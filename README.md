@@ -14,8 +14,9 @@ The server leverages a combination of curated resources, intelligent prompts, an
 - [Features](#features)
 - [KDB-X Setup](#kdb-x-setup)
 - [MCP Server Installation](#mcp-server-installation)
+- [Security Considerations](#security-considerations)
 - [Transport Options](#transport-options)
-- [Command line Parameters](#command-line-parameters)
+- [Command Line Tool](#command-line-tool)
 - [Configure Embeddings](#configure-embeddings)
 - [Usage with Claude Desktop](#usage-with-claude-desktop)
 - [Prompts/Resources/Tools](#promptsresourcestools)
@@ -76,7 +77,7 @@ To demonstrate basic usage of the KDB-X MCP Server, using an empty KDB-X databas
 
 1. Open a KDB-X service listening on a port.
 
-   By default the KDB-X MCP server will connect to KDB-X service on port 5000 - [but this can be changed](#command-line-parameters) via command line flags or environment variables.
+   By default the KDB-X MCP server will connect to KDB-X service on port 5000 - [but this can be changed](#command-line-tool) via command line flags or environment variables.
 
    > Note: KDB-X is currently not supported on Windows - if you are using Windows we recommend running KDB-X on WSL as outlined in the [prerequisites steps](#prerequisites)
 
@@ -84,9 +85,10 @@ To demonstrate basic usage of the KDB-X MCP Server, using an empty KDB-X databas
    q -p 5000
    ```
 
-2. Load the sql interface.
+2. Load the ai and sql interfaces.
 
    ```q
+   \l ai-libs/init.q
    .s.init[]
    ```
 
@@ -198,56 +200,131 @@ For more info on the supported transports see official documentation
 
 > Note: We don't support [sse](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse-deprecated) transport (server-sent events) as it has been deprecated since protocol version 2024-11-05.
 
-## Command line Parameters
+## Security Considerations
+
+To simplify getting started, we recommend running your MCP Client, KDB-X MCP server, and your KDB-X database on the same internal network.
+
+### Encrypting Database Connections
+
+If you require an encrypted connection between your KDB-X MCP server and your KDB-X database, you can enable enable TLS with `--db.tls=true`
+
+This requires setting up your KDB-X database with TLS as a prerequisite:
+
+  - You can follow the [kdb+ SSL/TLS guide](https://code.kx.com/q/kb/ssl/) to setup TLS with your KDB-X database
+  - If you are using self signed certificates:
+      - You will need to specify the location of your self signed CA cert
+      - Set the `KX_SSL_CA_CERT_FILE` environment variable to point to the CA cert file that your KDB-X database is using
+      - Alternatively, you can bypass certificate verification by setting `KX_SSL_VERIFY_SERVER=NO` for development and testing
+
+### Encrypting MCP Client Connections
+
+If you require an encrypted connection between your MCP Client and your KDB-X MCP server:
+
+- The KDB-X MCP server uses streamable-http transport by default and starts a localhost server at 127.0.0.1:8000. We do not recommend exposing this externally.
+- You can optionally setup an HTTPS proxy in front of your KDB-X MCP server such as [envoy](https://www.envoyproxy.io/) or [nginx](https://nginx.org/) for HTTPS termination
+- When using stdio transport, this is not required as communication is through standard input/output streams on the same host
+
+> Note: FastMCP v2 was evaluated for it's authentication features, but the KDB-X MCP Server will remain temporarily on v1 to preserve broad model compatibility until clients/models catch up, at which point we will transition.
+
+## Command Line Tool
 
 ```bash
 uv run mcp-server -h
-usage: mcp-server [-h] [--streamable-http | --stdio] [--kdbx-mcp-port KDBX_MCP_PORT]
-                  [--kdbx-host KDBX_HOST] [--kdbx-port KDBX_PORT]
-                  [--kdbx-timeout KDBX_TIMEOUT] [--kdbx-retry KDBX_RETRY]
+usage: mcp-server [-h] [--mcp.server-name str] [--mcp.log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                  [--mcp.transport {stdio,streamable-http}] [--mcp.port int] [--mcp.host str] [--db.host str]
+                  [--db.port int] [--db.username str] [--db.password SecretStr] [--db.tls bool] [--db.timeout int]
+                  [--db.retry int] [--db.embedding-csv-path str] [--db.metric str] [--db.k int]
 
-KDB-X MCP Server
+KDB-X MCP Server that enables interaction with KDB-X using natural language
 
 options:
   -h, --help            show this help message and exit
-  --streamable-http     Start the KDB-X MCP server with streamable HTTP transport (default)
-  --stdio               Start the KDB-X MCP server with stdio transport
-  --kdbx-mcp-port KDBX_MCP_PORT
-                        Port number the KDB-X MCP server will listen on when using streamable-http
-                        transport (default 8000)
-  --kdbx-host KDBX_HOST
-                        KDB-X host that the MCP server will connect to (default: localhost)
-  --kdbx-port KDBX_PORT
-                        KDB-X port that the MCP server will connect to (default: 5000)
-  --kdbx-timeout KDBX_TIMEOUT
-                        KDB-X connection timeout in seconds (default: 1)
-  --kdbx-retry KDBX_RETRY
-                        KDB-X connection retry attempts (default: 2)
+
+mcp options:
+  MCP server configuration and transport settings
+
+  --mcp.server-name str
+                        Name identifier for the MCP server instance [env: KDBX_MCP_SERVER_NAME] (default:
+                        KDBX_MCP_Server)
+  --mcp.log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        Logging verbosity level [env: KDBX_MCP_LOG_LEVEL] (default: INFO)
+  --mcp.transport {stdio,streamable-http}
+                        Communication protocol: 'stdio' (pipes) or 'streamable-http' (HTTP server) [env:
+                        KDBX_MCP_TRANSPORT] (default: streamable-http)
+  --mcp.port int        HTTP server port - ignored when using stdio transport [env: KDBX_MCP_PORT] (default: 8000)
+  --mcp.host str        HTTP server bind address - ignored when using stdio transport [env: KDBX_MCP_HOST] (default:
+                        127.0.0.1)
+
+db options:
+  KDB-X database connection settings
+
+  --db.host str         KDB-X server hostname or IP address [env: KDBX_DB_HOST] (default: 127.0.0.1)
+  --db.port int         KDB-X server port number [env: KDBX_DB_PORT] (default: 5000)
+  --db.username str     Username for KDB-X authentication [env: KDBX_DB_USERNAME] (default: )
+  --db.password SecretStr
+                        Password for KDB-X authentication [env: KDBX_DB_PASSWORD] (default: )
+  --db.tls bool         Enable TLS for KDB-X connections. When using TLS you will need to set the environment variable
+                        `KX_SSL_CA_CERT_FILE` that points to the certificate on your local filesystem that your KDB-X
+                        server is using. For local development and testing you can set `KX_SSL_VERIFY_SERVER=NO` to
+                        bypass this requirement [env: KDBX_DB_TLS] (default: False)
+  --db.timeout int      Timeout in seconds for KDB-X connection attempts [env: KDBX_DB_TIMEOUT] (default: 1)
+  --db.retry int        Number of connection retry attempts on failure [env: KDBX_DB_RETRY] (default: 2)
+  --db.embedding-csv-path str
+                        Path to embeddings csv [env: KDBX_DB_EMBEDDING_CSV_PATH] (default:
+                        src/mcp_server/utils/embeddings.csv)
+  --db.metric str       Distance metric used for vector similarity search (e.g., CS, L2, IP) [env: KDBX_DB_METRIC]
+                        (default: CS)
+  --db.k int            Default number of results to return from vector searches [env: KDBX_DB_K] (default: 5)
 ```
 
-> Note: `kdbx-*` command line flags can be used when pointing to a KDB+ Service
+### CLI Configuration Options
 
-**Environment Variables:**
+The command line options are organized into two main categories:
 
-- `KDBX_MCP_TRANSPORT`: Set transport mode (streamable-http, stdio)
-- `KDBX_MCP_PORT`: Set port number (default: 8000)
-- `KDBX_MCP_HOST`: Set host address (default: 127.0.0.1)
-- `KDBX_MCP_SERVER_NAME`: Set server name (default: KDB-X_Demo)
-- `KDBX_LOG_LEVEL`: Set logging level (default: INFO)
-- `KDBX_RETRY`: KDB-X server connection retry count (default: 2)
-- `KDBX_TIMEOUT`: KDB-X server connection timeout in seconds (default: 2)
-- `KDBX_HOST`: KDB-X server hostname (default: localhost)
-- `KDBX_PORT`: KDB-X server port (default: 5000)
-- `KDBX_USERNAME`: KDB-X username (optional)
-- `KDBX_PASSWORD`: KDB-X password (optional)
+- MCP Options - Configures the MCP server behavior and transport settings
+- Database Options - Configures the KDB-X database connection settings
 
-> Note: `KDBX_*` environment variables can be used when pointing to a KDB+ Service
+For details on each option, refer to the [help text](#command-line-tool)
 
-**Configuration Priority:**
+### Configuration Methods
 
-1. **CLI flags** (highest precedence) - `--streamable-http`, `--kdbx-port 8000`, `--kdbx-host myhost`
-2. **Environment variables** (middle precedence) - `KDBX_MCP_TRANSPORT=streamable-http`, `KDBX_HOST=myhost`
-3. **Default values** (lowest precedence)
+Configuration values are resolved in the following priority order:
+
+1. **Command Line Arguments** - Highest priority
+2. **Environment Variables** - Second priority
+3. **.env File** - Third priority
+4. **Default Values** - Default values defined in `settings.py`
+
+### Environment Variables
+
+Every command line option has a corresponding environment variable. For example:
+
+- `--mcp.port 7001` ↔ `KDBX_MCP_PORT=7001`
+- `--db.host localhost` ↔ `KDBX_DB_HOST=localhost`
+
+> Note: `KDBX_DB_*` environment variables can be used when pointing to a KDB+ Service
+
+### Example Usage
+
+```bash
+# Using defaults
+uv run mcp-server
+
+# Using a .env file
+echo "KDBX_MCP_PORT=7001" >> .env
+echo "KDBX_DB_RETRY=4" >> .env
+uv run mcp-server
+
+# Using environment variables
+export KDBX_MCP_PORT=7001
+export KDBX_DB_RETRY=4
+uv run mcp-server
+
+# Using command line arguments
+uv run mcp-server \
+    --mcp.port 7001 \
+    --db.retry 4
+```
 
 ## Configure Embeddings
 
@@ -322,7 +399,8 @@ If you have pre-existing MCP servers see [example config with multiple mcp-serve
         "/path/to/this/repo/",
         "run",
         "mcp-server",
-        "--stdio"
+        "--mcp.transport",
+        "stdio"
       ]
     }
   }
@@ -331,7 +409,7 @@ If you have pre-existing MCP servers see [example config with multiple mcp-serve
 
 **Note**
 
-- Update your `<user>` to point to the absolute path of the uv executable - only required if `uv` is not on your path
+- Update your `<user>` to point to the [absolute path of the uv executable](#uv-default-paths) - only required if `uv` is not on your path
 - Update the `--directory` path to the absolute path of this repo
 - Currently `KDB-X` does not support Windows, meaning `stdio` is not an option for Windows users
 - Claude Desktop is responsible for starting/stopping the MCP server when using `stdio`
@@ -407,6 +485,7 @@ To enable Developer mode:
 |-------------------|------------------------------------------|-------------------------------------------------|------------------------------------------------|
 | kdbx_run_sql_query | Execute SQL SELECT against KDB-X database | `query`: SQL SELECT query string to execute | JSON object with query results (max 1000 rows) |
 | kdbx_similarity_search | Perform vector similarity search on a KDB-X table | `table_name`: Name of the table to search <br> `query`: Text query to convert to vector and search <br> `n` (optional): Number of results to return | Dictionary containing search result |
+| kdbx_hybrid_search | Perform hybrid search combining vector similarity and sparse text search on a KDB-X table | table_name: Name of the table to search <br> query: Text query to convert to dense and sparse vectors for search <br> n (optional): Number of results to return | Dictionary containing search result |
 
 ## Development
 
@@ -448,7 +527,7 @@ KDB-X public preview has recently been extended. If you have installed KDB-X pri
 
 Ensure that your KDB-X database is online and accessible on the specified kdb host and port.
 
-The default KDB-X endpoint is `localhost:5000`, but you can update as needed via section [Command line Parameters](#command-line-parameters).
+The default KDB-X endpoint is `localhost:5000`, but you can update as needed via section [Command line Tool](#command-line-tool).
 
 #### KDB-X SQL interface error
 

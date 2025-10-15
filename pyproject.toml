@@ -14,15 +14,49 @@ dependencies = [
     # "tiktoken",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "ruff>=0.1.0",
+    "pytest>=7.3.2,<8",
+    "pytest-cov>=4.0.0,<5",
+    "pytest-mock",
+    "coverage>=7.8.0",
+    "mypy",
+    "trio",
 ]
 
 [project.scripts]
 mcp-server = "mcp_server:main"
 
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.coverage.run]
+command_line = "-m pytest tests --junitxml=report.xml"
+branch = true
+dynamic_context = "test_function"
+source_pkgs = ["mcp_server"]
+relative_files = true
+omit = [
+    "*/_template.py",
+    "main.py"
+]
+
+[tool.coverage.paths]
+source = [
+    "mcp_server",
+]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+skip_empty = true
+skip_covered = false
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov/coverage"
+show_contexts = true
+
+[tool.coverage.xml]
+output = "coverage.xml"

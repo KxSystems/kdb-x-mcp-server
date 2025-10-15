@@ -2,21 +2,23 @@ import logging
 from functools import lru_cache
 import pykx as kx
 from typing import Optional
-from mcp_server.settings import KDBConfig, default_kdb_config
-from mcp_server.server import config
+from mcp_server.settings import KDBConfig
+from mcp_server.server import app_settings
 
+db_config = app_settings.db
 logger = logging.getLogger(__name__)
 
 def get_kdb_connection() -> kx.QConnection:
+
     try:
-        conn = kdb_sync_connection(config.kdbx_config)
+        conn = kdb_sync_connection(db_config)
         conn('') # check if conn is live for existing connection from cache
         return conn
     except Exception as e:
         if "Attempted to use a closed IPC connection" in str(e):
             logger.warning("KDB-X connection was closed. Reinitializing...")
             cleanup_kdb_connection()
-            conn = kdb_sync_connection(config.kdbx_config)
+            conn = kdb_sync_connection(db_config)
             conn('')
             return conn
         else:
@@ -26,12 +28,12 @@ def get_kdb_connection() -> kx.QConnection:
 @lru_cache()
 def kdb_sync_connection(config: Optional[KDBConfig] = None) -> kx.QConnection:
     if config is None:
-        config = default_kdb_config
+        config = db_config
 
     logger.debug(f"KDBConfig: {config=}")
     logger.info(f"Connecting to KDB at {config.host}:{config.port}")
     retry = config.retry
-    success = False  # flag to track if connection was successful
+
     for attempt in range(1, retry + 1):
         try:
             conn = kx.SyncQConnection(
@@ -40,7 +42,8 @@ def kdb_sync_connection(config: Optional[KDBConfig] = None) -> kx.QConnection:
                 username=config.username,
                 password=config.password.get_secret_value(),
                 timeout=config.timeout,
-                reconnection_attempts=2
+                reconnection_attempts=config.retry,
+                tls=config.tls,
             )
             logger.info("Connected to Q/KDB-X")
             return conn

@@ -1,2 +1,2 @@
-table,embedding_column,embedding_provider,embedding_model,sparse_tokenizer_provider,sparse_tokenizer_model
-_example_table1,vecs,sentence_transformers,all-MiniLM-L12-v2,sentence_transformers,all-MiniLM-L12-v2
+table,embedding_column,embedding_provider,embedding_model,sparse_embedding_column,sparse_index_name,sparse_tokenizer_provider,sparse_tokenizer_model
+_example_table1,vecs,openai,text-embedding-3-small,sparseVecs,indexName,sentence_transformers,all-MiniLM-L12-v2
