@@ -1,12 +1,17 @@
+import os
 import sys
 import logging
 import socket
+from packaging import version
 from mcp.server.fastmcp import FastMCP
 from mcp_server.utils.logging import setup_logging
 from mcp_server.settings import AppSettings
 from mcp_server.tools import register_tools
 from mcp_server.prompts import register_prompts
 from mcp_server.resources import register_resources
+
+# Ensure pykx throws error on import if license is not valid
+os.environ["PYKX_LICENSED"] = "true"
 
 # Global flag to track AI Libs availability
 _ai_libs_available = False
@@ -66,6 +71,13 @@ class McpServer:
         try:
             import pykx as kx
             from pykx.exceptions import QError
+        except Exception as e:
+            self.logger.error(f"Failed to import pykx: {e}")
+            self.logger.error("KDB-X Python is required to connect to KDB-X. Please ensure you have a valid license.")
+            self.logger.error("Set the QLIC environment variable to point to your license directory.")
+            sys.exit(1)
+
+        try:
             conn = kx.SyncQConnection(
                 host=self.db_config.host,
                 port=self.db_config.port,
@@ -75,7 +87,15 @@ class McpServer:
                 tls=self.db_config.tls,
 
             )
-            self.logger.info(f"KDB-X connectivity check with 'tls={self.db_config.tls}': SUCCESS - {self.db_config.host}:{self.db_config.port} is accessible")
+            # Try to get kdbx version first, fall back to kdb+ version
+            try:
+                kdb_version = conn('.z.v`version').py().decode('utf-8')
+                kdb_type = "KDB-X"
+            except (QError, AttributeError):
+                kdb_version = str(conn('.z.K').py())
+                kdb_type = "KDB+"
+
+            self.logger.info(f"KDB-X connectivity check with 'tls={self.db_config.tls}': SUCCESS - {self.db_config.host}:{self.db_config.port} is accessible. You are running {kdb_type} version: {kdb_version}")
 
             # check if sql interface is loaded on KDB-X service
             if not conn('@[{2< count .s};(::);{0b}]').py():
@@ -87,8 +107,16 @@ class McpServer:
             # check if AI libs are loaded on KDB-X service
             ai_libs_available = conn('@[{2< count .ai};(::);{0b}]').py()
             if not ai_libs_available:
-                self.logger.warning("KDB-X AI Libs check: NOT AVAILABLE - AI-powered tools (similarity_search, hybrid_search) will be disabled.")
-                self.logger.warning("To enable AI tools, load the KDB-X AI libraries by running: \l ai-libs/init.q in your KDB-X Session and then restart the MCP server")
+
+                # check if KDB-X version supports loading AI libs as a module
+                if kdb_type == "KDB-X" and version.parse(kdb_version) < version.parse("0.1.2"):
+                    self.logger.warning("KDB-X AI Libs check: NOT AVAILABLE - AI-powered tools (similarity_search, hybrid_search) will be disabled.")
+                    self.logger.warning(f"To use AI tools, you need at least KDB-X version '0.1.2'. Your version is '{kdb_version}'. Please update to the latest KDB-X version.")
+                elif kdb_type == "KDB+":
+                    self.logger.warning("KDB-X AI Libs check: NOT AVAILABLE - AI-powered tools (similarity_search, hybrid_search) are only available in KDB-X.")
+                else:
+                    self.logger.warning("KDB-X AI Libs check: NOT LOADED - AI-powered tools (similarity_search, hybrid_search) will be disabled.")
+                    self.logger.warning(r"To enable AI tools, load the KDB-X AI libraries by running: .ai:use`kx.ai in your KDB-X Session and then restart the MCP server")
             else:
                 self.logger.info("KDB-X AI Libs check: SUCCESS - AI Libs are loaded, AI tools will be available")
 
@@ -148,7 +176,7 @@ class McpServer:
         try:
             import asyncio
             from mcp_server.utils.embeddings import preload_models_from_config
-            
+
             # Run the async preload function
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -157,7 +185,7 @@ class McpServer:
                 self.logger.info("Embedding models preloaded successfully")
             finally:
                 loop.close()
-                
+
         except Exception as e:
             self.logger.warning(f"Failed to preload embedding models: {e}")
             self.logger.warning("Models will be loaded on first use, which may cause delays")

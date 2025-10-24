@@ -56,7 +56,7 @@ Before installing and running the KDB-X MCP Server, ensure you have met the foll
 - [Cloned this repo](#clone-the-repository)
 - A `KDB-X/KDB+` Service listening on a host and port that will be accessible to the MCP Server
   - See examples - [KDB-X Setup](#kdb-x-setup) / [KDB+ Setup](#kdb-setup)
-  - KDB-X can be installed by signing up to the [KDB-X public preview](https://kdb-x.kx.com/sign-in) - see [KDB-X documentation](https://docs.kx.com/public-preview/kdb-x/home.htm) for supporting information
+  - KDB-X can be installed by signing up to the [KDB-X public preview](https://developer.kx.com/products/kdb-x/install) - see [KDB-X documentation](https://docs.kx.com/public-preview/kdb-x/home.htm) for supporting information
   - Windows users can run the KDB-X MCP Server on Windows and connect to a local KDB-X database via WSL or remote KDB-X database running on Linux
   - Windows users can run a local KDB-X database by installing KDB-X on [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), and use the default [streamable-http transport](#transport-options) when running the [KDB-X MCP Server](#run-the-server) - both share the same localhost network.
   - For details on KDB-X usage restrictions see [documentation](https://docs.kx.com/product/licensing/usage-restrictions.htm#kdb-x-personal-trial-download)
@@ -67,7 +67,7 @@ Before installing and running the KDB-X MCP Server, ensure you have met the foll
   - `npx` comes bundled with the [nodejs](https://nodejs.org/en) installer - available on Windows/Mac/Linux/WSL
   - See [example configuration with streamable-http](#example-configuration-with-streamable-http)
 
-> Note: ⚠️ KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://kdb-x.kx.com/sign-in) to ensure uninterrupted access, valid through January 4, 2026
+> Note: ⚠️ KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://developer.kx.com/products/kdb-x/install) to ensure uninterrupted access, valid through 31st Dec 2025
 
 ## Quickstart
 
@@ -88,7 +88,7 @@ To demonstrate basic usage of the KDB-X MCP Server, using an empty KDB-X databas
 2. Load the ai and sql interfaces.
 
    ```q
-   \l ai-libs/init.q
+   .ai:use`kx.ai
    .s.init[]
    ```
 
@@ -519,9 +519,19 @@ The below tools can aid in the development, testing and debugging of new MCP too
 
 ## Troubleshooting
 
+### Failed to import pykx
+
+The KDB-X MCP Server requires a valid KDB-X license to operate.
+
+If you see an error like "Failed to import pykx", verify the following:
+
+- The `QLIC` environment variable is set and points to your license directory
+- Your license directory contains a valid license file
+- Your license has not expired
+
 ### KDB-X license expired
 
-KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://kdb-x.kx.com/sign-in) to ensure uninterrupted access, valid through January 4, 2026
+KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://developer.kx.com/products/kdb-x/install) to ensure uninterrupted access, valid through 31st Dec 2025
 
 ### KDB-X connection error
 
