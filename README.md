@@ -369,8 +369,8 @@ The KDB-X MCP Server works with any MCP-compatible client.
 
 ## Configuration Guides
 
-- [Claude Desktop](mcp-clients/claude-desktop.md)- macOS and Windows
-- [GitHub Copilot in VSCode](mcp-clients/github-copilot-vscode.md)- macOS, Linux, Windows, and WSL
+- [Claude Desktop](mcp-clients/claude-desktop.md) - macOS and Windows
+- [GitHub Copilot in VSCode](mcp-clients/github-copilot-vscode.md) - macOS, Linux, Windows, and WSL
 
 ## Other MCP Clients
 
