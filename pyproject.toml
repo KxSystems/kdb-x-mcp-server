@@ -5,8 +5,8 @@ description = "MCP server for KDB-X"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp[cli]>=1.2.0",
-    "pykx>=4.0.0.b3",
+    "fastmcp>=2.14.0",
+    "pykx>=4.0.0.b4",
     "pydantic-settings",
     # Optional: Manage below packages for embedding support
     # "sentence_transformers",

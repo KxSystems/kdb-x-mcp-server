@@ -3,7 +3,7 @@ import sys
 import logging
 import socket
 from packaging import version
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from mcp_server.utils.logging import setup_logging
 from mcp_server.settings import AppSettings
 from mcp_server.tools import register_tools

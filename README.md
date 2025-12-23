@@ -14,8 +14,9 @@ The server leverages a combination of curated resources, intelligent prompts, an
 - [Features](#features)
 - [KDB-X Setup](#kdb-x-setup)
 - [MCP Server Installation](#mcp-server-installation)
-- [Security Considerations](#security-considerations)
 - [Transport Options](#transport-options)
+- [Security Considerations](#security-considerations)
+- [Authentication](#authentication)
 - [Command Line Tool](#command-line-tool)
 - [Configure Embeddings](#configure-embeddings)
 - [MCP Client Configuration](#mcp-client-configuration)
@@ -245,7 +246,84 @@ If you require an encrypted connection between your MCP Client and your KDB-X MC
 - You can optionally setup an HTTPS proxy in front of your KDB-X MCP server such as [envoy](https://www.envoyproxy.io/) or [nginx](https://nginx.org/) for HTTPS termination
 - When using stdio transport, this is not required as communication is through standard input/output streams on the same host
 
-> Note: FastMCP v2 was evaluated for it's authentication features, but the KDB-X MCP Server will remain temporarily on v1 to preserve broad model compatibility until clients/models catch up, at which point we will transition.
+## Authentication
+
+The KDB-X MCP Server leverages FastMCP's built-in authentication capabilities for securing remote connections.
+
+**Local Development (No Auth Required)**
+- Using `stdio` transport with local MCP clients (e.g., Claude Desktop on same machine)
+- Server and client running on the same trusted network
+
+**Remote Access (Auth Required)**
+- Exposing server to the internet (e.g. using ngrok, cloud deployments)
+- Connecting from remote MCP clients (e.g. Claude browser, API-based LLMs)
+- Using `streamable-http` transport across network boundaries
+
+### Supported Authentication Methods
+
+FastMCP **v2.11.0+** provides four authentication approaches:
+
+#### 1. Token Verification
+Validates JWTs or structured tokens issued by your existing authentication system.
+
+```python
+from fastmcp.server.auth.providers.jwt import JWTVerifier
+
+auth = JWTVerifier(
+    jwks_uri="https://your-auth-system.com/.well-known/jwks.json",
+    issuer="https://your-auth-system.com",
+    audience="kdb-mcp-server"
+)
+
+mcp = FastMCP(name="KDB-X MCP Server", auth=auth)
+```
+
+#### 2. OAuth Proxy
+Integrates with popular OAuth providers that don't support Dynamic Client Registration (DCR).
+
+**Supported Providers:** GitHub, Google, Azure, AWS, plus many more
+
+See the integrations sidebar on the FastMCP docs for full list of supported providers.
+
+Example with Github provider below.
+
+```python
+from fastmcp.server.auth.providers.github import GitHubProvider
+
+auth = GitHubProvider(
+    client_id="your_github_client_id",
+    client_secret="your_github_client_secret",
+    base_url="https://your-server.com"
+)
+
+mcp = FastMCP(name="KDB-X MCP Server", auth=auth)
+```
+
+#### 3. Remote OAuth (For Enterprise SSO)
+Works with modern identity providers supporting Dynamic Client Registration.
+
+**Supported Providers:** Descope, WorkOS AuthKit, DCR-capable platforms
+**Example Use Case:** Enterprise single sign-on integration
+
+#### 4. Full OAuth Server (Advanced/Rare)
+Complete OAuth 2.0 authorization server implementation for maximum control.
+
+**Best For:** Air-gapped environments or specialized compliance requirements
+
+### Complete Documentation
+
+For comprehensive setup guides, code examples, and security best practices, see the official [FastMCP Authentication documentation](https://gofastmcp.com/servers/auth/authentication).
+
+### Remote Access Checklist
+
+When exposing your MCP server remotely:
+
+1. Configure one of the authentication methods above
+2. Ensure `streamable-http` transport is enabled (default)
+3. Set up secure exposure:
+   - Development: Use tunneling (e.g., ngrok, cloudflared)
+   - Production: Deploy behind HTTPS proxy (nginx, envoy) or cloud platform
+4. Test authentication flow with your MCP client
 
 ## Command Line Tool
 
@@ -367,14 +445,15 @@ You can customize these implementations as needed, or add your own provider by f
 
 The KDB-X MCP Server works with any MCP-compatible client.
 
-## Configuration Guides
+### Configuration Guides
 
 - [Claude Desktop](mcp-clients/claude-desktop.md) - macOS and Windows
 - [GitHub Copilot in VSCode](mcp-clients/github-copilot-vscode.md) - macOS, Linux, Windows, and WSL
 
-## Other MCP Clients
+### Other MCP Clients
 
 The KDB-X MCP Server is compatible with any MCP client that supports the Model Context Protocol. For a full list of compatible clients, see the [official MCP clients list](https://modelcontextprotocol.io/clients).
+
 
 ## Prompts/Resources/Tools
 
