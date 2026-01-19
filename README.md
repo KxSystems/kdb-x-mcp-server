@@ -68,8 +68,6 @@ Before installing and running the KDB-X MCP Server, ensure you have met the foll
   - `npx` comes bundled with the [nodejs](https://nodejs.org/en) installer - available on Windows/Mac/Linux/WSL
   - See [example configuration with streamable-http](#example-configuration-with-streamable-http)
 
-> Note: ⚠️ KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://developer.kx.com/products/kdb-x/install) to ensure uninterrupted access, valid through 31st Dec 2025
-
 ## Quickstart
 
 To demonstrate basic usage of the KDB-X MCP Server, using an empty KDB-X database, follow the quickstart steps below.
@@ -367,12 +365,12 @@ You can customize these implementations as needed, or add your own provider by f
 
 The KDB-X MCP Server works with any MCP-compatible client.
 
-## Configuration Guides
+### Configuration Guides
 
 - [Claude Desktop](mcp-clients/claude-desktop.md) - macOS and Windows
 - [GitHub Copilot in VSCode](mcp-clients/github-copilot-vscode.md) - macOS, Linux, Windows, and WSL
 
-## Other MCP Clients
+### Other MCP Clients
 
 The KDB-X MCP Server is compatible with any MCP client that supports the Model Context Protocol. For a full list of compatible clients, see the [official MCP clients list](https://modelcontextprotocol.io/clients).
 
@@ -437,17 +435,19 @@ This section covers common MCP server issues. For client-specific troubleshootin
 
 ### Failed to import pykx
 
-The KDB-X MCP Server requires a valid KDB-X license to operate.
+The KDB-X MCP Server requires a valid KDB-X or KDB+ license to operate.
+
 
 If you see an error like "Failed to import pykx", verify the following:
 
 - The `QLIC` environment variable is set and points to your license directory
 - Your license directory contains a valid license file
-- Your license has not expired
+
+> Note: A valid license is one that has not expired and contains the feature flags `pykx` or `py`, and `embedq` or `eq`. These provide access to the KDB-X Python (pykx) functionality. For more information see the [pykx documentation](https://code.kx.com/pykx/4.0/help/troubleshooting.html#accessing-a-license-valid-for-kdb-x-python)
 
 ### KDB-X license expired
 
-KDB-X public preview has recently been extended. If you have installed KDB-X prior to Sept 30th 2025, you will receive an email notification about this update. Please update to the latest [KDB-X](https://developer.kx.com/products/kdb-x/install) to ensure uninterrupted access, valid through 31st Dec 2025
+Please update to the latest version of [KDB-X](https://developer.kx.com/products/kdb-x/install) to obtain a valid license.
 
 ### KDB-X connection error
 
