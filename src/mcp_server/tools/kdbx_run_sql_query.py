@@ -3,6 +3,7 @@ import pykx as kx
 import json
 from typing import Dict, Any
 from mcp_server.utils.kdbx import get_kdb_connection
+from mcp_server.stats import tracker, track_size
 
 logger = logging.getLogger(__name__)
 MAX_ROWS_RETURNED = 1000
@@ -50,6 +51,7 @@ async def run_query_impl(sqlSelectQuery: str) -> Dict[str, Any]:
 
 def register_tools(mcp_server):
     @mcp_server.tool()
+    @track_size(tracker, "kdbx_run_sql_query")
     async def kdbx_run_sql_query(query: str) -> Dict[str, Any]:
         """
         Execute a SQL query and return structured results only to be used on kdb and not on kdbai.
