@@ -406,6 +406,8 @@ To add new tools:
 3. The tool will be auto-discovered and registered when the server starts.
 4. Restart your MCP Client to access your new tool.
 
+Need your tool to use an external package (a public PyPI package, or your own separate project)? See [docs/adding-external-dependencies.md](docs/adding-external-dependencies.md) for both cases, with a worked example.
+
 To add new resources:
 
 1. Create a new Python file in src/mcp_server/resources/.
